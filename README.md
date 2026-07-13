@@ -1,119 +1,69 @@
-# Rocket League Esports Data Scraper
+# Rocket League Esports Scraper
 
-An async Python 3.11+ data extraction pipeline for Rocket League esports data. Built for resilient structural parsing, concurrent ingestion, and clean analytics-ready export.
+Async Python 3.11+ scraper for **Rocket League esports data** from:
 
-## Overview
+- [BLAST.tv RL](https://blast.tv/rl) / BLAST API
+- [Liquipedia Rocket League](https://liquipedia.net/rocketleague)
+- Optional public Google Sheets CSV exports (e.g. community stats)
 
-This tool provides a modular, configuration-driven architecture for automated extraction from structured esports data sources. It combines:
+Covers tournaments, teams, players, matches, rosters, earnings, and advanced stats where available. Data is staged in SQLite and exported to Parquet.
 
-- **Asynchronous HTTP ingestion** with polite rate limiting, exponential back-off, and circuit-breaker-style retries.
-- **Dynamic DOM parsing** that adapts to layout shifts and structural changes without hard-coding fragile selectors.
-- **Resilient error handling** for transient network failures, anti-automation countermeasures, and malformed payloads.
-- **Normalized SQLite staging** with atomic WAL transactions and concurrent write safety.
-- **Efficient JSON/CSV pipeline** with sort-stable normalization and Parquet export for downstream analytics.
+---
 
-## Architecture
+## Install
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Config    │────▶│  Fetchers   │────▶│   Parsers   │
-│   (.env)    │     │ (HTTP +     │     │ (DOM / JSON │
-└─────────────┘     │  Browser)   │     │  / CSV)     │
-                    └─────────────┘     └──────┬──────┘
-                                               │
-                    ┌─────────────┐     ┌──────▼──────┐
-                    │   Export    │◄────│   SQLite    │
-                    │  (Parquet)  │     │   (WAL)     │
-                    └─────────────┘     └─────────────┘
-```
-
-## Features
-
-- **Multi-Source Pipeline** — Ingests from tournament APIs, community wikis, and public spreadsheets through a unified interface.
-- **Declarative Target Configuration** — All endpoints, seeds, and identity strings are externalized to environment variables. No hard-coded targets or credentials ship with the codebase.
-- **Dual-Mode Fetching** — Prioritizes lightweight HTTP/JSON APIs and seamlessly falls back to browser-rendered content acquisition when dynamic pages are detected.
-- **Anti-Fragile Parsing** — Parsers use structural inference and defensive normalization rather than brittle XPath, preserving raw payloads for backfill when schemas drift.
-- **Concurrent Pipeline Workers** — Bounded async queues with graceful cancellation and back-pressure to respect upstream infrastructure.
-- **Structured Logging & Observability** — JSON-serialized debug logs with automatic rotation, plus real-time CLI dashboards via Rich.
-
-## Tech Stack
-
-- Python 3.11+
-- `httpx` — Async HTTP/2 client
-- `aiosqlite` — Async SQLite with WAL mode
-- `pandas` + `pyarrow` — In-memory transformation and Parquet serialization
-- `typer` + `rich` — CLI interface and terminal UI
-- `pydantic-settings` — Type-safe environment configuration
-- `tenacity` — Resilient retry policies with exponential jitter
-
-## Setup
-
-```powershell
+```bash
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -e .
+# Windows:
+.venv\Scripts\activate
+# macOS/Linux:
+source .venv/bin/activate
+
+pip install -e ".[dev]"
 ```
 
-Copy the example configuration and populate your own targets:
-
-```powershell
+```bash
 cp .env.example .env
-# Edit .env with your endpoints, seeds, and user-agent string.
+# Optional: set RL_DREKT_CSV_URLS and a real contact in RL_USER_AGENT
 ```
+
+Sensible public defaults are built in; `.env` is only required to customize.
 
 ## Usage
 
-List available commands:
-
-```powershell
-rl-scraper --help
-```
-
-Run all configured extraction pipelines:
-
-```powershell
+```bash
 rl-scraper scrape all
-```
-
-Export the staging database to timestamped Parquet files:
-
-```powershell
+rl-scraper scrape liquipedia
+rl-scraper scrape blast
+rl-scraper scrape drekt
 rl-scraper export
-```
-
-Check pipeline health and row counts:
-
-```powershell
 rl-scraper status
 ```
 
 ## Configuration
 
-All runtime behavior is controlled via environment variables prefixed with `RL_`. See `.env.example` for the full schema, including:
+All settings use the `RL_` prefix. See `.env.example`.
 
-- Source base URLs and API endpoints
-- Discovery seeds (comma-separated)
-- Rate-limit intervals and concurrency caps
-- Request identity (`User-Agent`) and browser fingerprinting seeds
-- Database, log, and export directory paths
+| Variable | Purpose |
+|----------|---------|
+| `RL_BLAST_BASE_URL` | BLAST site base |
+| `RL_BLAST_API_BASE_URL` | BLAST API base |
+| `RL_LIQUIPEDIA_BASE_URL` | Liquipedia RL wiki |
+| `RL_DREKT_CSV_URLS` | Optional comma-separated sheet CSV URLs |
+| `RL_USER_AGENT` | Identify your bot + contact |
 
-## Data Pipeline
+## Testing
 
-1. **Discovery** — Seed pages are crawled to discover tournament slugs, event links, or tab identifiers.
-2. **Fetch** — Each resource is fetched with adaptive retries. Dynamic pages are rendered via a headless browser only when static APIs return non-structured responses.
-3. **Parse** — Extracted entities (tournaments, teams, matches, rosters, earnings) are normalized into typed dictionaries.
-4. **Persist** — SQLite acts as a transactional staging area with foreign-key constraints and WAL journaling for high-concurrency safety.
-5. **Export** — Tables are dumped to sorted, compressed Parquet partitions suitable for Athena, Snowflake, or Pandas analysis.
+```bash
+pytest -q
+```
 
-## Compliance & Ethics
+## Responsible use
 
-This tool is intended for lawful, ethical esports data research. Always:
-
-- Respect `robots.txt` and Terms of Service of target domains.
-- Keep rate limits conservative (default ≤ 2 req/s).
-- Use an accurate, descriptive `User-Agent` string.
-- Store credentials and target endpoints in `.env` — never commit them.
+- Keep rate limits conservative (defaults ≤ ~1–2 req/s).
+- Respect BLAST, Liquipedia, and sheet owners' Terms of Service.
+- Not affiliated with Psyonix, BLAST, or Liquipedia.
 
 ## License
 
-MIT
+MIT © 2026 ark-daemon — see [LICENSE](LICENSE).

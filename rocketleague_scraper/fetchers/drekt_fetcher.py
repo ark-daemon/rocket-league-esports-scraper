@@ -43,7 +43,12 @@ class DrektFetcher:
 
     async def scrape(self) -> tuple[int, int]:
         run_id = await self.storage.run_started("drekt")
-        
+
+        if not self.settings.drekt_csv_urls:
+            logger.warning("No RL_DREKT_CSV_URLS configured; skipping drekt scrape.")
+            await self.storage.run_finished(run_id, "skipped", 0, 0, "no csv urls")
+            return 0, 0
+
         await self._init_db()
 
         # Seed the queue with sheet IDs from config URLs

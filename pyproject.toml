@@ -5,10 +5,19 @@ build-backend = "hatchling.build"
 [project]
 name = "rocketleague-scraper"
 version = "0.1.0"
-description = "Async Rocket League esports scraper with DOM parsing, resilience, and Parquet export."
+description = "Async Rocket League esports scraper for BLAST.tv, Liquipedia, and public CSV sheets"
 readme = "README.md"
+license = {text = "MIT"}
 requires-python = ">=3.11"
-authors = [{ name = "Rocket League Scraper" }]
+authors = [{ name = "ark-daemon" }]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
   "aiosqlite>=0.20.0",
   "beautifulsoup4>=4.12.0",
@@ -23,18 +32,22 @@ dependencies = [
   "tenacity>=8.3.0",
   "tqdm>=4.66.0",
   "typer>=0.12.0",
-  "cloakbrowser>=0.1.0"
+  "cloakbrowser>=0.1.0",
 ]
 
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0.0",
   "pytest-asyncio>=0.23.0",
-  "ruff>=0.5.0"
+  "ruff>=0.5.0",
 ]
 
 [project.scripts]
 rl-scraper = "rocketleague_scraper.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/ark-daemon/rocket-league-scraper"
+Repository = "https://github.com/ark-daemon/rocket-league-scraper"
 
 [tool.hatch.build.targets.wheel]
 packages = ["rocketleague_scraper"]
@@ -45,3 +58,4 @@ target-version = "py311"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+testpaths = ["tests"]

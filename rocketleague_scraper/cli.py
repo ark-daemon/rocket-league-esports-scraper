@@ -16,7 +16,7 @@ from .fetchers.liquipedia_fetcher import LiquipediaFetcher
 from .logging_config import configure_logging
 from .storage import Storage
 
-app = typer.Typer(help="Async structural data extraction CLI")
+app = typer.Typer(help="Async Rocket League esports scraper (BLAST, Liquipedia, CSV sheets)")
 scrape_app = typer.Typer(help="Run one or more configured extraction jobs")
 app.add_typer(scrape_app, name="scrape")
 console = Console()

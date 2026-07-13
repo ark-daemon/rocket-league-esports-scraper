@@ -4,28 +4,59 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from typing import Annotated
 
 import typer
-from rich.console import Console
-from rich.table import Table
 
+from .cli_ui import (
+    configure_rich_logging,
+    end_summary_table,
+    scrape_progress,
+    startup_panel,
+    status_table,
+    timed_run,
+)
 from .config import Settings, get_settings
 from .fetchers.blast_fetcher import BlastFetcher
 from .fetchers.drekt_fetcher import DrektFetcher
 from .fetchers.liquipedia_fetcher import LiquipediaFetcher
-from .logging_config import configure_logging
 from .storage import Storage
 
-app = typer.Typer(help="Async Rocket League esports scraper (BLAST, Liquipedia, CSV sheets)")
-scrape_app = typer.Typer(help="Run one or more configured extraction jobs")
+app = typer.Typer(
+    name="rl-scraper",
+    help="Async Rocket League esports scraper ([bold]BLAST[/], [bold]Liquipedia[/], CSV sheets).",
+    no_args_is_help=True,
+    rich_markup_mode="rich",
+    pretty_exceptions_show_locals=False,
+)
+scrape_app = typer.Typer(
+    help="Run one or more configured extraction jobs.",
+    no_args_is_help=True,
+    rich_markup_mode="rich",
+)
 app.add_typer(scrape_app, name="scrape")
-console = Console()
 
 
 def bootstrap() -> tuple[Settings, Storage]:
     settings = get_settings()
-    configure_logging(settings.log_dir)
+    configure_rich_logging("INFO", settings.log_dir / "rocketleague_scraper.log")
     return settings, Storage(settings.db_path)
+
+
+def _boot(settings: Settings, target: str) -> None:
+    startup_panel(
+        title="rl-scraper · run config",
+        rows={
+            "Target": target,
+            "DB path": settings.db_path,
+            "Export dir": settings.export_dir,
+            "Max concurrency": settings.max_concurrency,
+            "BLAST rate (s)": settings.blast_rate_limit_seconds,
+            "Liquipedia rate (s)": settings.liquipedia_rate_limit_seconds,
+            "Output format": "parquet (on export)",
+            "User-Agent": settings.user_agent[:56] + ("…" if len(settings.user_agent) > 56 else ""),
+        },
+    )
 
 
 async def run_source(source: str) -> tuple[int, int]:
@@ -40,75 +71,108 @@ async def run_source(source: str) -> tuple[int, int]:
     raise typer.BadParameter(f"Unknown source: {source}")
 
 
+def _scrape_one(source: str) -> None:
+    settings = get_settings()
+    _boot(settings, source)
+    with timed_run() as elapsed, scrape_progress() as progress:
+        task = progress.add_task(f"scrape {source}", total=None)
+        seen, written = asyncio.run(run_source(source))
+        progress.update(task, description=f"scrape {source} · done")
+    end_summary_table(
+        title="Scrape summary",
+        rows=[
+            ("Source", source),
+            ("Items seen", f"{seen:,}"),
+            ("Rows written", f"{written:,}"),
+            ("Errors/skips", "see logs"),
+        ],
+        duration_s=elapsed[0],
+    )
+
+
 @scrape_app.command("blast")
 def scrape_blast() -> None:
-    """Run the primary configured extraction pipeline."""
-    seen, written = asyncio.run(run_source("blast"))
-    console.print(f"Primary scrape complete: {seen} items seen, {written} rows written.")
+    """Scrape BLAST.tv / BLAST API Rocket League data."""
+    _scrape_one("blast")
 
 
 @scrape_app.command("liquipedia")
 def scrape_liquipedia() -> None:
-    """Run the secondary configured extraction pipeline."""
-    seen, written = asyncio.run(run_source("liquipedia"))
-    console.print(f"Secondary scrape complete: {seen} pages seen, {written} rows written.")
+    """Scrape Liquipedia Rocket League wiki pages."""
+    _scrape_one("liquipedia")
 
 
 @scrape_app.command("drekt")
 def scrape_drekt() -> None:
-    """Run the tertiary configured extraction pipeline."""
-    seen, written = asyncio.run(run_source("drekt"))
-    console.print(f"Tertiary scrape complete: {seen} rows seen, {written} rows written.")
+    """Scrape optional community CSV sheets (no-op if URLs unset)."""
+    _scrape_one("drekt")
 
 
 @scrape_app.command("all")
 def scrape_all() -> None:
-    """Run all configured extraction pipelines sequentially."""
-    async def _run() -> list[tuple[str, int, int]]:
-        results = []
+    """Run BLAST, Liquipedia, then Drekt sequentially."""
+    settings = get_settings()
+    _boot(settings, "blast + liquipedia + drekt")
+    results: list[tuple[str, int, int]] = []
+    with timed_run() as elapsed, scrape_progress() as progress:
+        task = progress.add_task("scrape all", total=3)
         for source in ("blast", "liquipedia", "drekt"):
-            seen, written = await run_source(source)
+            progress.update(task, description=f"scrape {source}")
+            seen, written = asyncio.run(run_source(source))
             results.append((source, seen, written))
-        return results
-
-    results = asyncio.run(_run())
-    table = Table(title="Scrape complete")
-    table.add_column("Source")
-    table.add_column("Seen", justify="right")
-    table.add_column("Rows written", justify="right")
-    for source, seen, written in results:
-        table.add_row(source, str(seen), str(written))
-    console.print(table)
+            progress.advance(task)
+    end_summary_table(
+        title="Scrape summary",
+        rows=[
+            (src, f"seen={seen:,} written={written:,}")
+            for src, seen, written in results
+        ],
+        duration_s=elapsed[0],
+    )
 
 
 @app.command("export")
-def export(output_dir: Path | None = typer.Option(None, "--output-dir", "-o")) -> None:
+def export(
+    output_dir: Annotated[
+        Path | None,
+        typer.Option("--output-dir", "-o", help="Parquet output directory."),
+    ] = None,
+) -> None:
     """Export SQLite tables to Parquet files."""
+
     async def _run() -> list[Path]:
         settings, storage = bootstrap()
         await storage.init()
         return await storage.export_parquet(output_dir or settings.export_dir)
 
-    paths = asyncio.run(_run())
-    for path in paths:
-        console.print(str(path))
+    settings = get_settings()
+    configure_rich_logging("INFO", settings.log_dir / "rocketleague_scraper.log")
+    target = output_dir or settings.export_dir
+    startup_panel(
+        title="rl-scraper · export",
+        rows={"DB path": settings.db_path, "Output format": "parquet", "Export dir": target},
+    )
+    with timed_run() as elapsed:
+        paths = asyncio.run(_run())
+    end_summary_table(
+        title="Export summary",
+        rows=[("Tables", len(paths))],
+        outputs=paths,
+        duration_s=elapsed[0],
+    )
 
 
 @app.command("status")
 def status() -> None:
     """Show row counts for the scraper database."""
+
     async def _run() -> dict[str, int]:
         _, storage = bootstrap()
         await storage.init()
         return await storage.counts()
 
     counts = asyncio.run(_run())
-    table = Table(title="Extraction pipeline status")
-    table.add_column("Table")
-    table.add_column("Rows", justify="right")
-    for table_name, count in counts.items():
-        table.add_row(table_name, str(count))
-    console.print(table)
+    status_table("Extraction pipeline status", counts)
 
 
 if __name__ == "__main__":

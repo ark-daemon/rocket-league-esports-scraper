@@ -60,10 +60,13 @@ pytest -q
 
 ## Responsible use
 
-- Keep rate limits conservative (defaults ≤ ~1–2 req/s).
+- Keep rate limits conservative (defaults â‰¤ ~1â€“2 req/s).
 - Respect BLAST, Liquipedia, and sheet owners' Terms of Service.
 - Not affiliated with Psyonix, BLAST, or Liquipedia.
 
 ## License
 
-MIT © 2026 ark-daemon — see [LICENSE](LICENSE).
+MIT Â© 2026 ark-daemon â€” see [LICENSE](LICENSE).
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Security reports: [SECURITY.md](SECURITY.md). Changes: [CHANGELOG.md](CHANGELOG.md).

@@ -4,9 +4,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-beta-orange.svg)](CHANGELOG.md)
 
-Async multi-source pipeline for **Rocket League esports** â€” BLAST.tv HTTP/JSON (primary), Liquipedia HTML, optional Google Sheets CSV â€” SQLite staging and Parquet export.
+Async multi-source pipeline for **Rocket League esports** — BLAST.tv HTTP/JSON (primary), Liquipedia HTML, optional Google Sheets CSV — SQLite staging and Parquet export.
 
-**Fleet:** [vlr-scraper](https://github.com/ark-daemon/vlr-scraper) Â· [hltv-scraper](https://github.com/ark-daemon/hltv-scraper) Â· [dota2-scraper](https://github.com/ark-daemon/dota2-scraper) Â· [lol-esports-scraper](https://github.com/ark-daemon/lol-esports-scraper)
+**Fleet:** [vlr-scraper](https://github.com/ark-daemon/vlr-scraper) · [hltv-scraper](https://github.com/ark-daemon/hltv-scraper) · [dota2-scraper](https://github.com/ark-daemon/dota2-scraper) · [lol-esports-scraper](https://github.com/ark-daemon/lol-esports-scraper)
 
 ---
 
@@ -22,31 +22,31 @@ Maturity: **beta (`0.1.0`)**. API and wiki shapes change; deep advanced stats pr
 
 ```
 rl-scraper scrape {blast|liquipedia|drekt|all}
-        â”‚
+        │
         â”œâ”€ BlastFetcher
-        â”‚    httpx â†’ api.blast.tv JSON (matches list, match payloads)
-        â”‚    optional CloakBrowser only if probe_deep_stats paths need HTML
-        â”‚    QueuePipeline workers â†’ Storage upserts
-        â”‚
+        │    httpx → api.blast.tv JSON (matches list, match payloads)
+        │    optional CloakBrowser only if probe_deep_stats paths need HTML
+        │    QueuePipeline workers → Storage upserts
+        │
         â”œâ”€ LiquipediaFetcher
-        â”‚    httpx â†’ liquipedia.net/rocketleague pages
-        â”‚    selectolax/BS parsers (tournaments, rosters, earnings, â€¦)
-        â”‚
+        │    httpx → liquipedia.net/rocketleague pages
+        │    selectolax/BS parsers (tournaments, rosters, earnings, …)
+        │
         â””â”€ DrektFetcher
-             httpx â†’ CSV export URLs (if RL_DREKT_CSV_URLS non-empty)
+             httpx → CSV export URLs (if RL_DREKT_CSV_URLS non-empty)
              else: no-op run status "skipped"
-        â”‚
+        │
         â–¼
   SQLite (embedded SCHEMA in storage.py) + scrape_runs
-        â”‚
+        │
         â–¼
-  export_parquet â†’ exports/*.parquet
+  export_parquet → exports/*.parquet
 ```
 
 **Resilience vocabulary:**
 
 - **RateLimiter / per-source delay** on HTTP clients (`RL_*_RATE_LIMIT_SECONDS`).
-- **tenacity** / manual retry loops on some HTTP calls â€” **not** a global circuit breaker.
+- **tenacity** / manual retry loops on some HTTP calls — **not** a global circuit breaker.
 - **CloakBrowser** is a dependency and used for rendered BLAST pages in helper paths; default scrape is **API/httpx-first**.
 
 ---
@@ -64,7 +64,7 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 # CloakBrowser only needed if you enable deep-stat HTML probes or hit that code path.
 
-cp .env.example .env   # optional â€” code has working public defaults
+cp .env.example .env   # optional — code has working public defaults
 
 rl-scraper --help
 rl-scraper scrape liquipedia
@@ -94,7 +94,7 @@ rl-scraper export -o exports
 | `RL_BLAST_RATE_LIMIT_SECONDS` | `0.75` | BLAST spacing |
 | `RL_LIQUIPEDIA_RATE_LIMIT_SECONDS` | `2.0` | Liquipedia spacing |
 | `RL_SPREADSHEET_RATE_LIMIT_SECONDS` | `0.25` | Sheet spacing |
-| `RL_MAX_CONCURRENCY` | `6` | Pipeline worker ceiling (BLAST caps workers at min(â€¦,4)) |
+| `RL_MAX_CONCURRENCY` | `6` | Pipeline worker ceiling (BLAST caps workers at min(…,4)) |
 | `RL_BLAST_FINGERPRINT_SEED` | `42069` | CloakBrowser fingerprint if used |
 | `RL_BLAST_PROBE_DEEP_STATS` | `false` | Extra stats endpoint probing |
 | `RL_BLAST_MAX_DISCOVERED_TOURNAMENTS` | `16` | Cap on auto-discovered RLCS slugs |
@@ -131,12 +131,12 @@ Export is **Parquet only** via `rl-scraper export`.
 ## Current limitations
 
 - **BLAST JSON contracts change** without notice; discovery regexes and parsers will lag.
-- **`RL_BLAST_PROBE_DEEP_STATS=false` by default** â€” advanced/boost/positioning coverage depends on what the match payload already includes.
+- **`RL_BLAST_PROBE_DEEP_STATS=false` by default** — advanced/boost/positioning coverage depends on what the match payload already includes.
 - **Drekt is optional**; empty `RL_DREKT_CSV_URLS` skips cleanly.
 - **No circuit breaker** (unlike vlr-scraper); only delays and local retries.
 - **CloakBrowser** is installed but not on the happy path for default BLAST API scrapes.
 - **Entity reconciliation** across sources is lightweight (`reconciliation.py`); expect duplicate logical teams across `source` values.
-- **Tests** cover smoke settings and Liquipedia parser fixtures â€” not live BLAST integration.
+- **Tests** cover smoke settings and Liquipedia parser fixtures — not live BLAST integration.
 
 ---
 
@@ -152,7 +152,7 @@ Export is **Parquet only** via `rl-scraper export`.
 | HTML | beautifulsoup4 + selectolax |
 | Retry | tenacity (and manual loops) |
 | Storage | aiosqlite |
-| Export | pandas + pyarrow â†’ Parquet |
+| Export | pandas + pyarrow → Parquet |
 | Logging | loguru; tqdm for progress |
 | Packaging | hatchling |
 | Quality | pytest (dev) |
@@ -161,7 +161,7 @@ Export is **Parquet only** via `rl-scraper export`.
 
 ## License
 
-MIT Â© ark-daemon â€” see [LICENSE](LICENSE).
+MIT © ark-daemon — see [LICENSE](LICENSE).
 
 See also [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), [CHANGELOG.md](CHANGELOG.md).
 

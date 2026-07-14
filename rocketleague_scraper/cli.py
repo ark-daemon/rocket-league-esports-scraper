@@ -10,6 +10,7 @@ import typer
 
 from .cli_ui import (
     configure_rich_logging,
+    console,
     end_summary_table,
     scrape_progress,
     startup_panel,
@@ -181,6 +182,10 @@ def snapshot(
         Path,
         typer.Option("--out", "-o", help="Directory for data.json/csv/parquet + manifest.json."),
     ] = Path("export"),
+    publish: Annotated[
+        bool,
+        typer.Option("--publish", help="Upload export/ to Cloudflare R2 after writing."),
+    ] = False,
 ) -> None:
     """Write fleet match-level snapshot for dashboard / R2 publish."""
     from .snapshot import write_snapshot
@@ -194,6 +199,7 @@ def snapshot(
             "Output dir": out,
             "Grain": "match/series",
             "ID strategy": "rl:{source}:{source_id}",
+            "Publish R2": publish,
         },
     )
     with timed_run() as elapsed:
@@ -209,6 +215,34 @@ def snapshot(
         outputs=[out / "manifest.json", out / "data.json", out / "data.csv", out / "data.parquet"],
         duration_s=elapsed[0],
     )
+    if publish:
+        _publish_r2(out, "rl")
+
+
+@app.command("publish")
+def publish_cmd(
+    out: Annotated[Path, typer.Option("--out", "-o", help="Local export directory.")] = Path(
+        "export"
+    ),
+) -> None:
+    """Upload export/ snapshot to Cloudflare R2 and verify public manifest."""
+    settings = get_settings()
+    configure_rich_logging("INFO", settings.log_dir / "rocketleague_scraper.log")
+    _publish_r2(out, "rl")
+
+
+def _publish_r2(out: Path, slug: str) -> None:
+    from .r2_publish import upload_snapshot
+
+    with timed_run() as elapsed:
+        result = upload_snapshot(export_dir=out, repo_slug=slug)
+    end_summary_table(
+        title="Publish summary",
+        rows=[("Records verified", result["record_count"]), ("Manifest URL", result["manifest_url"])],
+        outputs=list(result["urls"].values()),
+        duration_s=elapsed[0],
+    )
+    console.print(f"[bold green]Public manifest:[/] {result['manifest_url']}")
 
 
 if __name__ == "__main__":

@@ -166,37 +166,20 @@ def build_rows(db_path: str | Path) -> list[dict[str, Any]]:
 
 
 def write_snapshot(db_path: str | Path, out_dir: str | Path) -> dict[str, Any]:
-    out = Path(out_dir)
-    out.mkdir(parents=True, exist_ok=True)
+    from .snapshot_io import write_snapshot_files
+
     rows = build_rows(db_path)
     if not rows:
         logger.warning("snapshot empty after filters")
-
-    (out / "data.json").write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
-    with (out / "data.csv").open("w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=COLUMNS, extrasaction="ignore")
-        w.writeheader()
-        for row in rows:
-            w.writerow({k: row.get(k) for k in COLUMNS})
-    try:
-        import pandas as pd
-
-        pd.DataFrame(rows, columns=COLUMNS).to_parquet(out / "data.parquet", index=False)
-    except Exception as exc:
-        logger.error("parquet failed: {}", exc)
-
-    manifest = {
-        "source": REPO_SLUG,
-        "game": GAME,
-        "generated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "record_count": len(rows),
-        "schema_version": SCHEMA_VERSION,
-        "columns": COLUMNS,
-        "files": {"json": "data.json", "csv": "data.csv", "parquet": "data.parquet"},
-        "stats": dict(_stats),
-        "id_strategy": "rl:{source}:{source_id}",
-    }
-    (out / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    manifest = write_snapshot_files(
+        out_dir=Path(out_dir),
+        rows=rows,
+        columns=COLUMNS,
+        source=REPO_SLUG,
+        game=GAME,
+        schema_version=SCHEMA_VERSION,
+        extra_manifest={"stats": dict(_stats), "id_strategy": "rl:{source}:{source_id}"},
+    )
     logger.info(
         "snapshot {} rows mapped={} heuristic={} dual_true={}",
         len(rows),

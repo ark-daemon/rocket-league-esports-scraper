@@ -141,3 +141,7 @@ rocket league.md
 # OS
 .DS_Store
 Thumbs.db
+
+# Fleet match snapshots
+export/
+

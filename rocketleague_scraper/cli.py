@@ -175,5 +175,41 @@ def status() -> None:
     status_table("Extraction pipeline status", counts)
 
 
+@app.command("snapshot")
+def snapshot(
+    out: Annotated[
+        Path,
+        typer.Option("--out", "-o", help="Directory for data.json/csv/parquet + manifest.json."),
+    ] = Path("export"),
+) -> None:
+    """Write fleet match-level snapshot for dashboard / R2 publish."""
+    from .snapshot import write_snapshot
+
+    settings = get_settings()
+    configure_rich_logging("INFO", settings.log_dir / "rocketleague_scraper.log")
+    startup_panel(
+        title="rl-scraper · snapshot",
+        rows={
+            "DB path": settings.db_path,
+            "Output dir": out,
+            "Grain": "match/series",
+            "ID strategy": "rl:{source}:{source_id}",
+        },
+    )
+    with timed_run() as elapsed:
+        manifest = write_snapshot(settings.db_path, out)
+    end_summary_table(
+        title="Snapshot summary",
+        rows=[
+            ("Records", manifest.get("record_count")),
+            ("Status mapped", manifest.get("stats", {}).get("status_mapped")),
+            ("Status heuristic", manifest.get("stats", {}).get("status_heuristic")),
+            ("Dual-true anomalies", manifest.get("stats", {}).get("status_anomaly_dual_true")),
+        ],
+        outputs=[out / "manifest.json", out / "data.json", out / "data.csv", out / "data.parquet"],
+        duration_s=elapsed[0],
+    )
+
+
 if __name__ == "__main__":
     app()

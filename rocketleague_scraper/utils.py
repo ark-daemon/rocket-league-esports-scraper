@@ -61,7 +61,9 @@ def parse_duration_seconds(start: str | None, end: str | None) -> float | None:
         return None
 
 
-def composite_match_key(tournament: str | None, team_a: str | None, team_b: str | None, date: str | None) -> str:
+def composite_match_key(
+    tournament: str | None, team_a: str | None, team_b: str | None, date: str | None
+) -> str:
     teams = sorted([normalize_name(team_a), normalize_name(team_b)])
     day = (date or "")[:10]
     raw = "|".join([normalize_name(tournament), *teams, day])

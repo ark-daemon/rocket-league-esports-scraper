@@ -60,7 +60,9 @@ class BlastFetcher:
     async def discover_tournament_slugs(self, client: AsyncHttpClient) -> list[str]:
         configured = list(self.settings.blast_tournament_slugs)
         try:
-            response = await client.get(str(self.settings.blast_base_url).rstrip("/") + "/tournaments")
+            response = await client.get(
+                str(self.settings.blast_base_url).rstrip("/") + "/tournaments"
+            )
             found = sorted(set(re.findall(r"/rl/tournaments/([a-z0-9-]+)", response.text)))
             # Keep RLCS regional events and majors/worlds; ignore generic or duplicated nav links.
             filtered = [slug for slug in found if slug.startswith("rlcs-")]
@@ -71,7 +73,9 @@ class BlastFetcher:
             logger.warning("BLAST tournament discovery failed; using configured slugs: {}", exc)
             return configured
 
-    async def fetch_tournament_matches(self, client: AsyncHttpClient, slug: str) -> list[dict[str, Any]]:
+    async def fetch_tournament_matches(
+        self, client: AsyncHttpClient, slug: str
+    ) -> list[dict[str, Any]]:
         api_base = str(self.settings.blast_api_base_url).rstrip("/")
         url = f"{api_base}/v2/games/rl/tournaments/{slug}/matches"
         try:
@@ -88,7 +92,9 @@ class BlastFetcher:
         team_b = parse_team(match.get("teamB"))
         team_a_id = await self.storage.upsert_team(team_a) if team_a else None
         team_b_id = await self.storage.upsert_team(team_b) if team_b else None
-        match_id = await self.storage.upsert_match(parse_match(match, tournament_id, team_a_id, team_b_id))
+        match_id = await self.storage.upsert_match(
+            parse_match(match, tournament_id, team_a_id, team_b_id)
+        )
         game_ids: dict[str, int] = {}
         count = 1
         for game_row in parse_games(match, match_id):
@@ -97,7 +103,11 @@ class BlastFetcher:
                 game_ids[str(game_row["source_id"])] = game_id
             count += 1
 
-        stats_payload = await self.fetch_optional_stats_for_match(match) if self.settings.blast_probe_deep_stats else []
+        stats_payload = (
+            await self.fetch_optional_stats_for_match(match)
+            if self.settings.blast_probe_deep_stats
+            else []
+        )
         if stats_payload:
             for stat_row, boost_row, pos_row in parse_player_stats_payload(stats_payload, game_ids):
                 pgs_id = await self.storage.upsert_player_game_stats(stat_row)
@@ -149,7 +159,7 @@ class BlastFetcher:
                         break
                     except Exception:
                         if attempt < 2:
-                            await asyncio.sleep(2 ** attempt)
+                            await asyncio.sleep(2**attempt)
         return results
 
     async def fetch_rendered_page(self, url: str) -> str:

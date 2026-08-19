@@ -1,4 +1,4 @@
-﻿"""Smoke tests for packaging and settings defaults."""
+"""Smoke tests for packaging and settings defaults."""
 
 from rocketleague_scraper import __version__
 from rocketleague_scraper.config import Settings

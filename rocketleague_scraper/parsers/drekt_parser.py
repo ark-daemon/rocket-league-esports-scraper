@@ -14,10 +14,14 @@ def parse_drekt_csv(csv_text: str, fetched_at: str) -> list[dict[str, Any]]:
     df = pd.read_csv(StringIO(csv_text), dtype=str, keep_default_na=False)
     rows: list[dict[str, Any]] = []
     original_columns = list(df.columns)
-    normalized_columns = [safe_column_name(col, f"column_{idx}") for idx, col in enumerate(original_columns, start=1)]
+    normalized_columns = [
+        safe_column_name(col, f"column_{idx}") for idx, col in enumerate(original_columns, start=1)
+    ]
     df.columns = normalized_columns
     for index, record in df.iterrows():
-        raw = {original_columns[i]: record[normalized_columns[i]] for i in range(len(original_columns))}
+        raw = {
+            original_columns[i]: record[normalized_columns[i]] for i in range(len(original_columns))
+        }
         rows.append(
             {
                 "spreadsheet_last_fetched": fetched_at,
@@ -55,7 +59,21 @@ def infer_entity_type(record: pd.Series) -> str | None:
 
 
 def first_stat_name(record: pd.Series) -> str | None:
-    identity = {"player", "player_name", "ign", "name", "team", "team_name", "org", "organization", "event", "tournament", "season", "rlcs_season", "region"}
+    identity = {
+        "player",
+        "player_name",
+        "ign",
+        "name",
+        "team",
+        "team_name",
+        "org",
+        "organization",
+        "event",
+        "tournament",
+        "season",
+        "rlcs_season",
+        "region",
+    }
     for key, value in record.items():
         if key not in identity and str(value).strip():
             return key

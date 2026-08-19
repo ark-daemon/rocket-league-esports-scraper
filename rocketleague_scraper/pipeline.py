@@ -32,7 +32,10 @@ class QueuePipeline(Generic[T]):
         await self.queue.put(item)
 
     async def run(self) -> None:
-        tasks = [asyncio.create_task(self._worker(i), name=f"pipeline-worker-{i}") for i in range(self.workers)]
+        tasks = [
+            asyncio.create_task(self._worker(i), name=f"pipeline-worker-{i}")
+            for i in range(self.workers)
+        ]
         await self.queue.join()
         for _ in tasks:
             await self.queue.put(None)

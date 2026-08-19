@@ -124,10 +124,7 @@ def scrape_all() -> None:
             progress.advance(task)
     end_summary_table(
         title="Scrape summary",
-        rows=[
-            (src, f"seen={seen:,} written={written:,}")
-            for src, seen, written in results
-        ],
+        rows=[(src, f"seen={seen:,} written={written:,}") for src, seen, written in results],
         duration_s=elapsed[0],
     )
 
@@ -238,7 +235,10 @@ def _publish_r2(out: Path, slug: str) -> None:
         result = upload_snapshot(export_dir=out, repo_slug=slug)
     end_summary_table(
         title="Publish summary",
-        rows=[("Records verified", result["record_count"]), ("Manifest URL", result["manifest_url"])],
+        rows=[
+            ("Records verified", result["record_count"]),
+            ("Manifest URL", result["manifest_url"]),
+        ],
         outputs=list(result["urls"].values()),
         duration_s=elapsed[0],
     )

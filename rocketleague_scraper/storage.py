@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 import aiosqlite
 import pandas as pd
 from loguru import logger
 
 from .utils import dump_json, utc_now_iso
-
 
 SCHEMA = """
 PRAGMA journal_mode=WAL;
@@ -266,6 +266,18 @@ CREATE TABLE IF NOT EXISTS earnings (
     UNIQUE(source, entity_type, entity_name, event_name, placement, date)
 );
 
+CREATE TABLE IF NOT EXISTS drekt_stats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sheet_id TEXT,
+    gid TEXT,
+    tab_name TEXT,
+    context_path TEXT,
+    data_json TEXT,
+    row_count INTEGER,
+    fetched_at TEXT,
+    UNIQUE(sheet_id, gid)
+);
+
 CREATE TABLE IF NOT EXISTS scrape_runs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     source TEXT NOT NULL,
@@ -299,7 +311,12 @@ class Storage:
             return int(cur.lastrowid)
 
     async def run_finished(
-        self, run_id: int, status: str, items_seen: int, items_written: int, error: str | None = None
+        self,
+        run_id: int,
+        status: str,
+        items_seen: int,
+        items_written: int,
+        error: str | None = None,
     ) -> None:
         async with aiosqlite.connect(self.db_path, timeout=30.0) as db:
             await db.execute(
@@ -336,7 +353,12 @@ class Storage:
             row,
             ["source", "source_id"],
             fallback_where="source=? AND name=? AND COALESCE(rlcs_season, '')=COALESCE(?, '') AND COALESCE(region, '')=COALESCE(?, '')",
-            fallback_params=(row.get("source"), row.get("name"), row.get("rlcs_season"), row.get("region")),
+            fallback_params=(
+                row.get("source"),
+                row.get("name"),
+                row.get("rlcs_season"),
+                row.get("region"),
+            ),
         )
 
     async def upsert_match(self, row: dict[str, Any]) -> int:
@@ -389,7 +411,9 @@ class Storage:
             for columns_tuple, group in grouped.items():
                 columns = list(columns_tuple)
                 placeholders = ", ".join("?" for _ in columns)
-                sql = f"INSERT OR IGNORE INTO {table} ({', '.join(columns)}) VALUES ({placeholders})"
+                sql = (
+                    f"INSERT OR IGNORE INTO {table} ({', '.join(columns)}) VALUES ({placeholders})"
+                )
                 values = [tuple(r[c] for c in columns) for r in group]
                 await db.executemany(sql, values)
                 total += len(group)
@@ -398,8 +422,18 @@ class Storage:
 
     async def counts(self) -> dict[str, int]:
         tables = [
-            "tournaments", "matches", "games", "player_game_stats", "boost_stats",
-            "positioning_stats", "teams", "players", "rosters", "staff", "earnings", "drekt_stats",
+            "tournaments",
+            "matches",
+            "games",
+            "player_game_stats",
+            "boost_stats",
+            "positioning_stats",
+            "teams",
+            "players",
+            "rosters",
+            "staff",
+            "earnings",
+            "drekt_stats",
         ]
         async with aiosqlite.connect(self.db_path, timeout=30.0) as db:
             result = {}
@@ -411,8 +445,18 @@ class Storage:
     async def export_parquet(self, export_dir: Path) -> list[Path]:
         export_dir.mkdir(parents=True, exist_ok=True)
         tables = [
-            "matches", "games", "player_game_stats", "boost_stats", "positioning_stats",
-            "teams", "players", "rosters", "staff", "tournaments", "earnings", "drekt_stats",
+            "matches",
+            "games",
+            "player_game_stats",
+            "boost_stats",
+            "positioning_stats",
+            "teams",
+            "players",
+            "rosters",
+            "staff",
+            "tournaments",
+            "earnings",
+            "drekt_stats",
         ]
         written: list[Path] = []
         db_conn = self._sync_connection()
@@ -438,7 +482,9 @@ class Storage:
         clean["updated_at"] = utc_now_iso()
         columns = list(clean)
         assignments = ", ".join(
-            f"{col}=excluded.{col}" for col in columns if col not in conflict_columns and col != "created_at"
+            f"{col}=excluded.{col}"
+            for col in columns
+            if col not in conflict_columns and col != "created_at"
         )
         placeholders = ", ".join("?" for _ in columns)
         conflict = ", ".join(conflict_columns)
@@ -462,7 +508,9 @@ class Storage:
                     f"UPDATE {table} SET {set_clause} WHERE {fallback_where}",
                     (*values, *fallback_params),
                 )
-                cur = await db.execute(f"SELECT id FROM {table} WHERE {fallback_where}", fallback_params)
+                cur = await db.execute(
+                    f"SELECT id FROM {table} WHERE {fallback_where}", fallback_params
+                )
                 found = await cur.fetchone()
                 await db.commit()
                 if not found:
@@ -477,4 +525,5 @@ class Storage:
 
     def _sync_connection(self):
         import sqlite3
+
         return sqlite3.connect(self.db_path)

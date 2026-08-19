@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-from typing import Any
 from urllib.parse import quote, urljoin
 
 from loguru import logger
@@ -58,9 +57,12 @@ class LiquipediaFetcher:
                 logger.warning("Could not discover Liquipedia links from {}: {}", seed, exc)
                 continue
             for link in re.findall(r'href="/rocketleague/([^"]+)"', html):
-                if any(token in link for token in ("Rocket_League_Championship_Series", "RLCS")):
-                    if ":" not in link and "#" not in link:
-                        discovered.add(link.split("?")[0])
+                if (
+                    any(token in link for token in ("Rocket_League_Championship_Series", "RLCS"))
+                    and ":" not in link
+                    and "#" not in link
+                ):
+                    discovered.add(link.split("?")[0])
         return sorted(discovered)
 
     async def fetch_page(self, client: AsyncHttpClient, page_name: str) -> str:

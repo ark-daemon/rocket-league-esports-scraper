@@ -56,6 +56,34 @@ packages = ["rocketleague_scraper"]
 line-length = 100
 target-version = "py311"
 
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+    "ASYNC",  # flake8-async
+    "PTH",    # flake8-use-pathlib
+    "RUF",    # ruff rules
+    "PIE",    # flake8-pie
+]
+ignore = [
+    "E501",     # line length
+    "B008",     # typer default options
+    "ASYNC230", # blocking file open in async
+    "ASYNC240", # Path methods in async
+    "RUF001",   # ambiguous unicode in strings
+    "RUF002",   # ambiguous unicode in docstrings
+    "RUF003",   # ambiguous unicode in comments
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["rocketleague_scraper"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]

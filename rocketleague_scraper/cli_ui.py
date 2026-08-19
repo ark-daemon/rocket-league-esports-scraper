@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from loguru import logger
 from rich.console import Console
@@ -112,7 +112,9 @@ def end_summary_table(
     duration_s: float | None = None,
 ) -> None:
     """End-of-run metrics + optional output paths."""
-    table = Table(title=title, border_style=STYLE_BORDER, show_header=True, header_style=STYLE_TITLE)
+    table = Table(
+        title=title, border_style=STYLE_BORDER, show_header=True, header_style=STYLE_TITLE
+    )
     table.add_column("Metric", style=STYLE_KEY)
     table.add_column("Value", style=STYLE_VALUE, justify="right")
     for key, value in rows:

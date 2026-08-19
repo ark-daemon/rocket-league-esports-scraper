@@ -6,7 +6,6 @@ from rocketleague_scraper.parsers.liquipedia_parser import (
     table_rows,
 )
 
-
 TOURNAMENT_HTML = """
 <html>
   <h1 class="firstHeading">RLCS 2026 - Europe Open 1</h1>

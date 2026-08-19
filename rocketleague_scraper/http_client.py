@@ -67,7 +67,7 @@ class AsyncHttpClient:
         except Exception as exc:
             raise httpx.HTTPError(f"Non-JSON response from {url}: {exc}") from exc
 
-    async def __aenter__(self) -> "AsyncHttpClient":
+    async def __aenter__(self) -> AsyncHttpClient:
         return self
 
     async def __aexit__(self, *_: Any) -> None:

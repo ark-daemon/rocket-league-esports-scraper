@@ -22,7 +22,9 @@ def table_rows(html: str) -> list[dict[str, str]]:
     tree = HTMLParser(html)
     rows: list[dict[str, str]] = []
     for table in tree.css("table"):
-        headers = [clean_text(th.text()) or f"col_{i}" for i, th in enumerate(table.css("tr th"), start=1)]
+        headers = [
+            clean_text(th.text()) or f"col_{i}" for i, th in enumerate(table.css("tr th"), start=1)
+        ]
         for tr in table.css("tr"):
             cells = tr.css("td")
             if not cells:
@@ -30,7 +32,7 @@ def table_rows(html: str) -> list[dict[str, str]]:
             if not headers or len(headers) < len(cells):
                 headers = [f"col_{i}" for i in range(1, len(cells) + 1)]
             row = {}
-            for key, cell in zip(headers, cells):
+            for key, cell in zip(headers, cells, strict=False):
                 row[safe_column_name(key)] = clean_text(cell.text()) or ""
             if row:
                 rows.append(row)
@@ -39,9 +41,15 @@ def table_rows(html: str) -> list[dict[str, str]]:
 
 def parse_tournament_page(html: str, page_name: str) -> dict[str, Any]:
     soup = BeautifulSoup(html, "html.parser")
-    title = clean_text((soup.select_one("h1.firstHeading") or soup.select_one("h1") or soup.new_tag("h1")).get_text(" "))
+    title = clean_text(
+        (
+            soup.select_one("h1.firstHeading") or soup.select_one("h1") or soup.new_tag("h1")
+        ).get_text(" ")
+    )
     infobox = {}
-    for row in soup.select(".fo-nttax-infobox .infobox-cell-2, .infobox tr, .fo-nttax-infobox-wrapper"):
+    for row in soup.select(
+        ".fo-nttax-infobox .infobox-cell-2, .infobox tr, .fo-nttax-infobox-wrapper"
+    ):
         text = clean_text(row.get_text(" "))
         if text and ":" in text:
             key, value = text.split(":", 1)
@@ -62,7 +70,9 @@ def parse_tournament_page(html: str, page_name: str) -> dict[str, Any]:
     }
 
 
-def parse_rosters(html: str, team_name: str | None = None) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+def parse_rosters(
+    html: str, team_name: str | None = None
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     rows = table_rows(html)
     roster_rows: list[dict[str, Any]] = []
     staff_rows: list[dict[str, Any]] = []
@@ -85,7 +95,9 @@ def parse_rosters(html: str, team_name: str | None = None) -> tuple[list[dict[st
                     "raw_json": raw,
                 }
             )
-        elif any("coach" in (v or "").lower() for v in row.values()) or "role" in row and "coach" in row.get("role", "").lower():
+        elif any("coach" in (v or "").lower() for v in row.values()) or (
+            "role" in row and "coach" in row.get("role", "").lower()
+        ):
             staff_rows.append(
                 {
                     "source": "liquipedia",
@@ -103,7 +115,9 @@ def parse_rosters(html: str, team_name: str | None = None) -> tuple[list[dict[st
                     "source": "liquipedia",
                     "team_name": team,
                     "player_ign": name,
-                    "real_name": row.get("name") if row.get("name") != name else row.get("real_name"),
+                    "real_name": row.get("name")
+                    if row.get("name") != name
+                    else row.get("real_name"),
                     "nationality": row.get("nationality") or row.get("country"),
                     "role": row.get("role") or "player",
                     "status": row.get("status") or "active",
@@ -118,7 +132,9 @@ def parse_rosters(html: str, team_name: str | None = None) -> tuple[list[dict[st
 def parse_earnings(html: str, page_name: str) -> list[dict[str, Any]]:
     earnings: list[dict[str, Any]] = []
     for row in table_rows(html):
-        amount = row.get("prize") or row.get("prize_money") or row.get("earnings") or row.get("amount")
+        amount = (
+            row.get("prize") or row.get("prize_money") or row.get("earnings") or row.get("amount")
+        )
         entity = row.get("player") or row.get("team") or row.get("name")
         if not amount or not entity:
             continue
@@ -127,7 +143,9 @@ def parse_earnings(html: str, page_name: str) -> list[dict[str, Any]]:
                 "source": "liquipedia",
                 "entity_type": "player" if row.get("player") else "team",
                 "entity_name": entity,
-                "event_name": row.get("event") or row.get("tournament") or page_name.replace("_", " "),
+                "event_name": row.get("event")
+                or row.get("tournament")
+                or page_name.replace("_", " "),
                 "placement": row.get("place") or row.get("placement"),
                 "amount": parse_money(amount),
                 "date": row.get("date"),
@@ -147,7 +165,13 @@ def infer_season(value: str | None) -> str | None:
 def infer_stage_format(html: str) -> str | None:
     text = html.lower()
     formats = []
-    for candidate in ("swiss", "double elimination", "single elimination", "round robin", "bracket"):
+    for candidate in (
+        "swiss",
+        "double elimination",
+        "single elimination",
+        "round robin",
+        "bracket",
+    ):
         if candidate in text:
             formats.append(candidate)
     return ", ".join(formats) if formats else None

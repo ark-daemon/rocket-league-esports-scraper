@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import csv
 import json
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Sequence
-
+from typing import Any
 
 INT_COLUMNS = frozenset({"score_a", "score_b"})
 

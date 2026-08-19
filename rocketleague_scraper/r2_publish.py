@@ -1,4 +1,4 @@
-﻿"""Upload snapshot files to Cloudflare R2 (S3-compatible API)."""
+"""Upload snapshot files to Cloudflare R2 (S3-compatible API)."""
 
 from __future__ import annotations
 
@@ -50,9 +50,7 @@ def load_r2_config() -> dict[str, str]:
     ]
     if missing:
         raise RuntimeError(
-            "Missing R2 env vars: "
-            + ", ".join(missing)
-            + ". Set them then re-run publish."
+            "Missing R2 env vars: " + ", ".join(missing) + ". Set them then re-run publish."
         )
     endpoint = _env("R2_ENDPOINT") or f"https://{account}.r2.cloudflarestorage.com"
     return {
@@ -150,4 +148,3 @@ def upload_snapshot(
         "urls": urls,
         "uploaded_keys": uploaded,
     }
-

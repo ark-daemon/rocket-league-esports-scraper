@@ -58,9 +58,7 @@ class Settings(BaseSettings):
         "APAC",
         "SSA",
     )
-    blast_tournament_slugs: Annotated[tuple[str, ...], NoDecode] = (
-        "rlcs-world-championship-2026",
-    )
+    blast_tournament_slugs: Annotated[tuple[str, ...], NoDecode] = ("rlcs-world-championship-2026",)
     liquipedia_seed_pages: Annotated[tuple[str, ...], NoDecode] = (
         "Rocket_League_Championship_Series/2026",
         "Rocket_League_Championship_Series/2025",

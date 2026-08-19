@@ -24,7 +24,11 @@ def parse_team(team: dict[str, Any] | None) -> dict[str, Any] | None:
 
 def parse_tournament(match_or_tournament: dict[str, Any]) -> dict[str, Any]:
     tournament = match_or_tournament.get("tournament", match_or_tournament)
-    name = tournament.get("name") or tournament.get("parentTournamentName") or "Unknown BLAST Tournament"
+    name = (
+        tournament.get("name")
+        or tournament.get("parentTournamentName")
+        or "Unknown BLAST Tournament"
+    )
     season = None
     circuit = match_or_tournament.get("circuit") or {}
     if isinstance(circuit, dict):
@@ -40,12 +44,15 @@ def parse_tournament(match_or_tournament: dict[str, Any]) -> dict[str, Any]:
         "prize_pool_total": parse_money(tournament.get("prizePool")),
         "prize_pool_raw": tournament.get("prizePool"),
         "location": tournament.get("location"),
-        "stage_format": tournament.get("format") or match_or_tournament.get("parentTournamentFormat"),
+        "stage_format": tournament.get("format")
+        or match_or_tournament.get("parentTournamentFormat"),
         "raw_json": dump_json(tournament),
     }
 
 
-def parse_match(match: dict[str, Any], tournament_id: int | None, team_a_id: int | None, team_b_id: int | None) -> dict[str, Any]:
+def parse_match(
+    match: dict[str, Any], tournament_id: int | None, team_a_id: int | None, team_b_id: int | None
+) -> dict[str, Any]:
     tournament = match.get("tournament") or {}
     stage = match.get("stage") or {}
     team_a = match.get("teamA") or {}
@@ -58,7 +65,12 @@ def parse_match(match: dict[str, Any], tournament_id: int | None, team_a_id: int
         "tournament_name": tournament.get("name") or match.get("parentTournamentName"),
         "event_name": tournament.get("name") or match.get("parentTournamentName"),
         "rlcs_season": (match.get("circuit") or {}).get("name") or match.get("circuitName"),
-        "region": infer_region(tournament.get("name"), stage.get("name"), team_a.get("nationality"), team_b.get("nationality")),
+        "region": infer_region(
+            tournament.get("name"),
+            stage.get("name"),
+            team_a.get("nationality"),
+            team_b.get("nationality"),
+        ),
         "stage": stage.get("name") or match.get("tournamentName") or match.get("name"),
         "series_format": match.get("type"),
         "scheduled_at": scheduled_at,
@@ -102,8 +114,11 @@ def parse_games(match: dict[str, Any], match_id: int) -> list[dict[str, Any]]:
             "duration_seconds": parse_duration_seconds(started, ended),
             "team_a_score": team_a_score,
             "team_b_score": team_b_score,
-            "overtime_flag": int(bool(game.get("overtime") or game.get("isOvertime"))) if ("overtime" in game or "isOvertime" in game) else None,
-            "overtime_duration_seconds": game.get("overtimeDurationSeconds") or game.get("overtimeDuration"),
+            "overtime_flag": int(bool(game.get("overtime") or game.get("isOvertime")))
+            if ("overtime" in game or "isOvertime" in game)
+            else None,
+            "overtime_duration_seconds": game.get("overtimeDurationSeconds")
+            or game.get("overtimeDuration"),
             "raw_json": dump_json(game),
         }
         team_a = match.get("teamA") or {}
@@ -157,7 +172,9 @@ POSITION_ALIASES = {
 }
 
 
-def parse_player_stats_payload(payload: Any, game_id_lookup: dict[str, int]) -> list[tuple[dict[str, Any], dict[str, Any], dict[str, Any]]]:
+def parse_player_stats_payload(
+    payload: Any, game_id_lookup: dict[str, int]
+) -> list[tuple[dict[str, Any], dict[str, Any], dict[str, Any]]]:
     """Normalize optional BLAST player-stat payloads if an endpoint exposes them.
 
     BLAST changes these response shapes, so this walks common containers and keeps raw JSON.
@@ -168,7 +185,9 @@ def parse_player_stats_payload(payload: Any, game_id_lookup: dict[str, int]) -> 
     while stack:
         value = stack.pop()
         if isinstance(value, dict):
-            if any(key in value for key in ("player", "playerId", "playerName")) and any(key in value for key in STAT_ALIASES):
+            if any(key in value for key in ("player", "playerId", "playerName")) and any(
+                key in value for key in STAT_ALIASES
+            ):
                 candidates.append(value)
             stack.extend(value.values())
         elif isinstance(value, list):
